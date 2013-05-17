@@ -137,6 +137,14 @@
 			<forward name="test5View" path="/test/test5.jsp" />
 			<forward name="formSynForwardPageView" path="/test/test1ForwardPage.jsp" />
 		</action>
+		
+		<!-- 工作流管理 -->
+		<action name="commonActionForm" path="/workflow" scope="request"
+			parameter="reqCode"
+			type="org.g4studio.system.admin.web.WorkflowAction">
+			 <forward name="workflowlist"
+				path="/meihua/workflowList.jsp" /> 
+		</action>  
 	</action-mappings>
 
 </struts-config>
