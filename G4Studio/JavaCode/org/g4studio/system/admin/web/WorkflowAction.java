@@ -5,11 +5,13 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.g4studio.core.metatype.Dto;
 import org.g4studio.core.mvc.xstruts.action.ActionForm;
 import org.g4studio.core.mvc.xstruts.action.ActionForward;
 import org.g4studio.core.mvc.xstruts.action.ActionMapping;
 import org.g4studio.core.web.BizAction;
-import org.g4studio.system.admin.service.ResourceService;
+import org.g4studio.core.web.CommonActionForm;
+import org.g4studio.system.admin.service.WorkflowService;
 import org.jbpm.api.Configuration;
 import org.jbpm.api.ProcessDefinition;
 import org.jbpm.api.ProcessEngine;
@@ -22,13 +24,54 @@ import org.jbpm.api.RepositoryService;
  */
 public class WorkflowAction extends BizAction {
 
-	private ResourceService resourceService = (ResourceService) super
-			.getService("resourceService");
+	private WorkflowService workflowService = (WorkflowService) super
+			.getService("workflowService");
 
 	public ActionForward initWorkflow(ActionMapping mapping, ActionForm form,
 			HttpServletRequest request, HttpServletResponse response)
 			throws Exception {
 		return mapping.findForward("workflowlist");
+	}
+
+	/**
+	 * 修改发布流程类别信息.
+	 * 
+	 * @param
+	 * @return
+	 */
+	public ActionForward updateWorkflow(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response)
+			throws Exception {
+		CommonActionForm aForm = (CommonActionForm) form;
+		Dto inDto = aForm.getParamAsDto(request);
+		workflowService.updateWorkflow(inDto);
+		setOkTipMsg("任务模板修改成功", response);
+		return mapping.findForward(null);
+	}
+
+	/**
+	 * 删除任务模板.  *
+	 * 
+	 * @param mapping  *
+	 * @param form  *
+	 * @param request  *
+	 * @param response  *
+	 * @return  *
+	 * @throws Exception  *
+	 *             ActionForward  *
+	 * @exception  *
+	 * @since  1.0.0
+	 */
+	public ActionForward deleteWorkflow(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response)
+			throws Exception {
+		String strChecked = request.getParameter("strChecked");
+		ProcessEngine engine = Configuration.getProcessEngine();
+		RepositoryService service = engine.getRepositoryService();
+		service.deleteDeploymentCascade(strChecked);
+		System.out.println("删除任务模板：" + strChecked);
+		setOkTipMsg("删除任务模板成功", response);
+		return mapping.findForward(null);
 	}
 
 	public ActionForward initWorkflowList(ActionMapping mapping,

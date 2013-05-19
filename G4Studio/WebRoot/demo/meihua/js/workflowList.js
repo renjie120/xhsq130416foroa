@@ -12,7 +12,7 @@ Ext.onReady(function() {
 			var cm = new Ext.grid.ColumnModel([rownum, sm, {
 						header : '新建任务', // 列标题
 						dataIndex : 'edit',
-						width : 50,
+						width : 150,
 						renderer : iconColumnRender
 					}, {
 						header : '任务类别名称', // 列标题
@@ -23,24 +23,24 @@ Ext.onReady(function() {
 				}	, {
 						header : '版本',
 						dataIndex : 'version',
-						width : 150
+						width : 200
 						// 列宽
 				}	, {
 						header : '任务发布id',
 						hidden : true, // 隐藏列
 						dataIndex : 'deploymentId',
-						width : 150
+						width : 200
 						// 列宽
-				},{
+				}	, {
 						header : '任务发布id',
 						hidden : true, // 隐藏列
 						dataIndex : 'deploymentId',
-						width : 150
+						width : 200
 						// 列宽
 				}	, {
 						header : '任务类别id',
 						dataIndex : 'id',
-						width : 100
+						width : 200
 					}]);
 
 			/**
@@ -167,32 +167,39 @@ Ext.onReady(function() {
 									}
 								}]
 					});
+ 
 
-			// 表格右键菜单
-			var contextmenu = new Ext.menu.Menu({
-						id : 'theContextMenu',
-						items : [{
-							text : '查看详情',
-							iconCls : 'previewIcon',
-							handler : function() {
-								// 获取当前选择行对象
-								var record = grid.getSelectionModel()
-										.getSelected();
-								var xmmc = record.get('id');
-								Ext.MessageBox.alert('提示', xmmc);
+			function deleteCodeItems() {
+				var rows = grid.getSelectionModel().getSelections();
+
+				if (Ext.isEmpty(rows)) {
+					Ext.Msg.alert('提示', '请先选中要删除的任务模板!');
+					return;
+				}
+				var strChecked = jsArray2JsString(rows, 'deploymentId');
+				Ext.Msg.confirm('请确认', '你真的要删除该任务模板吗?', function(btn, text) {
+							if (btn == 'yes') {
+								showWaitMsg();
+								Ext.Ajax.request({
+											url : 'workflow.do?reqCode=deleteWorkflow',
+											success : function(response) {
+												store.reload(); 
+												hideWaitMsg(); 
+											},
+											failure : function(response) {
+												var resultArray = Ext.util.JSON
+														.decode(response.responseText);
+												Ext.Msg.alert('提示',
+														resultArray.msg);
+											},
+											params : {
+												strChecked : strChecked
+											}
+										});
 							}
-						}, {
-							text : '导出列表',
-							iconCls : 'page_excelIcon',
-							handler : function() {
-								// 获取当前选择行对象
-								var record = grid.getSelectionModel()
-										.getSelected();
-								var xmmc = record.get('id');
-								Ext.MessageBox.alert('提示', xmmc);
-							}
-						}]
-					});
+						});
+			}
+
 			var editCodeWindow, editCodeFormPanel;
 			editCodeFormPanel = new Ext.form.FormPanel({
 						labelAlign : 'right',
@@ -203,7 +210,7 @@ Ext.onReady(function() {
 						id : 'editCodeFormPanel',
 						name : 'editCodeFormPanel',
 						items : [{
-									fieldLabel : '任务类别',
+									fieldLabel : '类别名称',
 									name : 'name',
 									anchor : '100%',
 									labelStyle : micolor,
@@ -215,29 +222,11 @@ Ext.onReady(function() {
 									labelStyle : micolor,
 									allowBlank : false
 								}, {
-									xtype : 'numberfield',
-									fieldLabel : '代码',
-									name : 'code',
+									fieldLabel : '发布号',
+									name : 'deploymentId',
 									anchor : '100%',
 									labelStyle : micolor,
 									allowBlank : false
-								}, {
-									fieldLabel : '代码描述',
-									name : 'codedesc',
-									anchor : '100%',
-									labelStyle : micolor,
-									allowBlank : false
-								}, enabledCombo_E, editmodeCombo_E, {
-									fieldLabel : '备注',
-									name : 'remark',
-									anchor : '100%',
-									allowBlank : true
-								}, {
-									fieldLabel : '代码编号',
-									name : 'codeid',
-									anchor : '100%',
-									hidden : true,
-									hideLabel : true
 								}]
 					});
 
@@ -248,7 +237,7 @@ Ext.onReady(function() {
 						resizable : false,
 						draggable : true,
 						closeAction : 'hide',
-						title : '<span class="commoncss">修改字典</span>',
+						title : '<span class="commoncss">修改任务类别</span>',
 						modal : true,
 						collapsible : true,
 						titleCollapse : true,
@@ -260,24 +249,18 @@ Ext.onReady(function() {
 						constrain : true,
 						items : [editCodeFormPanel],
 						buttons : [{
-							text : '保存',
-							iconCls : 'acceptIcon',
-							handler : function() {
-								if (runMode == '0') {
-									Ext.Msg
-											.alert('提示',
-													'系统正处于演示模式下运行,您的操作被取消!该模式下只能进行查询操作!');
-									return;
-								}
-								updateCodeItem();
-							}
-						}, {
-							text : '关闭',
-							iconCls : 'deleteIcon',
-							handler : function() {
-								editCodeWindow.hide();
-							}
-						}]
+									text : '保存',
+									iconCls : 'acceptIcon',
+									handler : function() {
+										updateCodeItem();
+									}
+								}, {
+									text : '关闭',
+									iconCls : 'deleteIcon',
+									handler : function() {
+										editCodeWindow.hide();
+									}
+								}]
 
 					});
 			// 表格实例
@@ -317,13 +300,6 @@ Ext.onReady(function() {
 			// 监听单元格双击事件
 			grid.addListener('rowdblclick', ininEditCodeWindow);
 
-			// 给表格绑定右键菜单
-			grid.on("rowcontextmenu", function(grid, rowIndex, e) {
-						e.preventDefault(); // 拦截默认右键事件
-						grid.getSelectionModel().selectRow(rowIndex); // 选中当前行
-						contextmenu.showAt(e.getXY());
-					});
-
 			// 布局模型
 			var viewport = new Ext.Viewport({
 						layout : 'border',
@@ -359,6 +335,28 @@ Ext.onReady(function() {
 			function iconColumnRender(value) {
 				return "<a href='javascript:void(0);'><img src='" + webContext
 						+ "/resource/image/ext/edit1.png'/></a>";;
+			}
+
+			function updateCodeItem() {
+				if (!editCodeFormPanel.form.isValid()) {
+					return;
+				}
+				editCodeFormPanel.form.submit({
+							url : './resource.do?reqCode=updateCodeItem',
+							waitTitle : '提示',
+							method : 'POST',
+							waitMsg : '正在处理数据,请稍候...',
+							success : function(form, action) {
+								editCodeWindow.hide();
+								store.reload();
+								Ext.Msg.alert('提示', '字典修改成功,要立即进行内存同步吗？'); 
+							},
+							failure : function(form, action) {
+								var msg = action.result.msg;
+								Ext.MessageBox.alert('提示', '代码对照表保存失败:<br>'
+												+ msg);
+							}
+						});
 			}
 
 			function ininEditCodeWindow() {
